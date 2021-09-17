@@ -28,8 +28,6 @@ Computer::Computer(int cpuCapacity, int memCapacity, int userCapacity, double ar
 }
 
 void Computer::init(){
-  for(int i = 0; i < cpuCapacity; i++) cpuDepartures.push(0);
-
   //System event
   addArrivalEvent(true);
 
@@ -56,7 +54,7 @@ void Computer::handleArrival(bool isSystem){
     blocks++;
   }else {
     memSize++;
-    if (memSize==1)addDepartureEvent(isSystem);
+    if (memSize <= cpuCapacity)addDepartureEvent(isSystem);
   }
   addArrivalEvent(isSystem);
 }
@@ -65,7 +63,7 @@ void Computer::handleDeparture(bool isSystem){
   totalProgramTime += memSize*(clock-prev);
   memSize--;
   departureCount++;
-  if (memSize > 0) addDepartureEvent(isSystem);
+  if (memSize >= cpuCapacity) addDepartureEvent(isSystem);
 }
 
 void Computer::addArrivalEvent(bool isSystem){
@@ -73,9 +71,7 @@ void Computer::addArrivalEvent(bool isSystem){
 }
 
 void Computer::addDepartureEvent(bool isSystem){
-  double depTime = std::max(clock, cpuDepartures.top()) + exp_rv(serviceRate);
-  cpuDepartures.pop();
-  cpuDepartures.push(depTime);
+  double depTime = clock + exp_rv(serviceRate);
   eventList.insert(depTime, (isSystem ? SYS_BIT : 0));
 }
 
@@ -92,8 +88,7 @@ double Computer::theoryAvgNumOfPrograms() const{
 }
 
 double Computer::avgProgramTime() const{
-  int arrivals = arrivalAttempts - blocks;
-  return arrivals == 0 ? 0 : totalProgramTime / arrivals;
+  return simAvgNumOfPrograms() / (arrivalRate1 + arrivalRate2);
 }
 
 double Computer::blockingProb() const{
